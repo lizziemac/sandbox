@@ -1,0 +1,21 @@
+name: Check Branch Names
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - 'release/*'
+
+jobs:
+  check-names:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check branch names
+      run: |
+        RELEASE_VERSION=$(echo "${{ github.base_ref }}" | sed -n 's/release\/\(.*\)/\1/p')
+        RC_VERSION=$(echo "${{ github.head_ref }}" | sed -n 's/rc\/\(.*\)-rc.*/\1/p')
+        if [[ "$RELEASE_VERSION" != "$RC_VERSION" ]]; then
+          echo "Error: The release candidate branch base and the release branch versions do not match."
+          exit 1
+        fi

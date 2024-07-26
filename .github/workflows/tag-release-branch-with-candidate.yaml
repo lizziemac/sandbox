@@ -1,0 +1,59 @@
+name: Tag Release
+
+on:
+  push:
+    branches:
+      - 'release/*'
+
+env:
+  IS_NEW_BRANCH: false
+  BRANCH_NAME: ''
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Configure Git
+      run: |
+        git config --global user.name "Github Actions"
+        git config --global user.email "${{ secrets.ACTION_EMAIL }}@users.noreply.github.com"
+
+    - name: Check if new branch
+      id: current_tag
+      run: |
+        echo "::set-output name=is_new_branch::false"
+        git fetch --tags
+
+        # pull 1.0.0 from 1.0.0-rc1
+        CURRENT_VERSION=$((git describe --tags --abbrev=0 2>/dev/null || echo "") | sed -E 's/^(.*)-rc[0-9]+$/\1/')
+
+        # pull 1.0.0 from release/1.0.0
+        RELEASE_VERSION=$(echo "${{ github.ref }}" | sed -n 's/.*release\/\(.*\)/\1/p')
+
+        # if the current tag is not the base version, create a new tag with -rc1
+        if [[ "$CURRENT_TAG" != "$RELEASE_VERSION" ]]; then
+          echo "Creating new tag $RELEASE_VERSION-rc1 for new branch"
+          NEW_TAG="$RELEASE_VERSION-rc1"
+          git tag "$NEW_TAG"
+          git push origin "$NEW_TAG"
+          echo "::set-output name=is_new_branch::true"
+        fi
+
+    - name: Create Tag
+      run: |
+        BRANCH_NAME="$(echo ${GITHUB_REF#refs/heads/} | sed 's/\//-/g')"
+        if [[ "${{ steps.current_tag.outputs.is_new_branch }}" == "true" ]]; then
+          echo "New branch created, no need to create a tag"
+          exit 0
+        fi
+
+        RC_VERSION=$(echo "$BRANCH_NAME" | sed -n 's/release-\(.*\)/\1/p')
+        if [[ ! -z "$RC_VERSION" ]]; then
+          echo "Creating tag $RC_VERSION"
+          git tag "$RC_VERSION"
+          git push origin "$RC_VERSION"
+        fi
