@@ -1,0 +1,12 @@
+name: Release Candidate Branch
+
+on:
+  pull_request:
+    types: [opened, edited, reopened]
+    branches:
+      - 'release/*' # the branch that the release candidate is being merged into
+
+jobs:
+  check-release-candidate-branch:
+    name: Call 'check release candidate branch' workflow
+    uses: ./.github/workflows/check-release-candidate-branch.yaml

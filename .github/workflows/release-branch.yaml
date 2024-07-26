@@ -1,0 +1,37 @@
+name: Release Branch
+
+on:
+  push:
+    branches:
+      - 'release/*' # this will always run when a PR is merged, but will fail immediately so it's fine
+  pull_request:
+    types: [closed]
+    branches:
+      - 'release/*'
+  workflow_dispatch:
+    # for re-running when we need to make changes to the github actions
+    # match the options for the tag-release-branch job inputs
+    inputs:
+      release_branch:
+        description: 'The branch that the tag is being created for'
+        required: true
+      release_candidate_branch:
+        description: 'The release candidate branch'
+        required: false
+
+jobs:
+    tag-release-branch:
+      name: Call 'tag release branch' workflow
+      uses: ./.github/workflows/tag-release-branch.yaml
+      with:
+        release_branch: ${{ inputs.release_branch || github.ref }}
+        release_candidate_branch: ${{ inputs.release_candidate_branch || github.event.pull_request.head.ref || '' }}
+
+    validate:
+      name: Show generated tag
+      needs: tag-release-branch
+      runs-on: ubuntu-latest
+      steps:
+        - name: Show tag
+          run: |
+            echo "Tag: ${{ needs.tag-release-branch.outputs.tag }}"

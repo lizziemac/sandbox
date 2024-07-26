@@ -1,0 +1,99 @@
+name: Tag release branch
+
+# This workflow tags a release branch with either rc1 if it is a new branch,
+# or rcX if a release candidate branch is being merged into this release branch
+
+# See examples/release-branch.yaml for an example of how to call this workflow
+on:
+  workflow_call:
+    inputs:
+      release_branch: # The release branch to tag
+        required: true
+        type: string
+        description: 'The release branch to tag'
+      release_candidate_branch: # The release candidate branch being merged
+        required: true
+        type: string
+        description: 'The release candidate branch being merged'
+    outputs:
+      tag:
+        description: 'The tag that was created'
+        value: ${{ jobs.build.outputs.tag }}
+
+jobs:
+  build:
+    name: Tag release branch
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      # with:
+      #   fetch-depth: 0 # TODO: Uncomment if we experience issues with git history
+
+    - name: Sanitize data
+      id: sanitized
+      run: |
+        RELEASE_BRANCH="$(echo ${{ inputs.release_branch }} | sed 's|refs/heads/||')"
+        echo "release_branch=$RELEASE_BRANCH" >> $GITHUB_OUTPUT
+
+    - name: Check if new branch
+      id: current_tag
+      run: |
+        set -x
+        echo "is_new_branch=false" >> $GITHUB_OUTPUT
+        git fetch --tags
+
+        # pull 1.0.0-rc2 from rc/1.0.0-rc2
+        RC_VERSION="$(( echo ${{ inputs.release_candidate_branch }} || echo "") | sed 's|rc/||')"
+        # pull 1.0.0 from rc/1.0.0-rc2
+        RC_BASE_VERSION="$(echo $RC_VERSION | sed -E 's/^(.*)-rc[0-9]+$/\1/')"
+        echo "Release candidate version: $RC_VERSION"
+        echo "Release candidate base version: $RC_BASE_VERSION"
+
+        # pull 1.0.0 from release/1.0.0
+        RELEASE_VERSION="$(echo "${{ steps.sanitized.outputs.release_branch }}" | sed -n 's/.*release\/\(.*\)/\1/p')"
+        echo "Release version: $RELEASE_VERSION"
+
+        IS_RC_SEMANTIC=$(echo $RC_VERSION | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+(-rc[0-9]+)?$'; echo $?)
+        echo "is_rc_semantic=$IS_RC_SEMANTIC" >> $GITHUB_OUTPUT
+        echo "Is release candidate semantic: $IS_RC_SEMANTIC"
+
+        # if the current tag is not the base version, assume no tags have been made for this version
+        # and create a new tag with -rc1
+        if [[ "$RC_BASE_VERSION" != "$RELEASE_VERSION" ]]; then
+          echo "Creating new tag $RELEASE_VERSION-rc1 for new branch"
+          NEW_TAG="$RELEASE_VERSION-rc1"
+          git tag "$NEW_TAG"
+          git push origin "$NEW_TAG"
+          echo "release_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+          echo "is_new_branch=true" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create tag from release candidate branch
+      id: rc_tag
+      if: ${{ steps.current_tag.outputs.is_new_branch == 'false' && inputs.release_candidate_branch != '' && steps.current_tag.outputs.is_rc_semantic == 0 }}
+      run: |
+        # Determine the version to tag from the release candidate branch
+        RC_VERSION="$(( echo ${{ inputs.release_candidate_branch }} || echo "") | sed 's|rc/||')"
+        if [[ -z "$RC_VERSION" ]]; then
+          echo "Could not determine release candidate version from branch name, assuming no tag desired."
+          exit 0
+        fi
+
+        echo "Creating tag $RC_VERSION"
+        echo "release_tag=$RC_VERSION" >> $GITHUB_OUTPUT
+        git tag "$RC_VERSION"
+        git push origin "$RC_VERSION"
+
+    - name: Output generated tag
+      id: tag
+      run: |
+        # if the rc_tag.release_tag is empty, then show the current_tag.release_tag
+        if [[ -z "${{ steps.rc_tag.outputs.release_tag }}" ]]; then
+          echo "tag=${{ steps.current_tag.outputs.release_tag }}" >> $GITHUB_OUTPUT
+        else
+          echo "tag=${{ steps.rc_tag.outputs.release_tag }}" >> $GITHUB_OUTPUT
+        fi

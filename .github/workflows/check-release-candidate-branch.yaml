@@ -1,0 +1,43 @@
+name: Validate release candidate branch
+
+# This workflow checks that the release candidate branch is being merged into a release branch
+# with the same base version, and that the tag for the release candidate does not already exist
+
+# See examples/release-candidate-branch.yaml for an example of how to call this workflow
+on:
+  workflow_call:
+
+jobs:
+  check-names:
+    name: Check branch names for ${{ github.head_ref }} into ${{ github.base_ref }}
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      # with:
+      #   fetch-depth: 0 # TODO: Uncomment if we experience issues with git history
+
+    - name: Fetch tags
+      run: git fetch --tags
+
+    - name: Check branch names
+      run: |
+        RELEASE_VERSION=$(echo "${{ github.base_ref }}" | sed -n 's/release\/\(.*\)/\1/p')
+        RC_VERSION=$(echo "${{ github.head_ref }}" | sed 's|rc/||')
+        RC_BASE_VERSION=$(echo "$RC_VERSION" | sed 's|-rc[0-9]*||')
+        echo "Release version: $RELEASE_VERSION"
+        echo "Release candidate version: $RC_VERSION"
+        echo "Release candidate base version: $RC_VERSION"
+
+        # make sure the rc base version matches the release version
+        if [[ "$RELEASE_VERSION" != "$RC_BASE_VERSION" ]]; then
+          echo "Error: The release candidate branch base and the release branch versions do not match."
+          exit 1
+        fi
+
+        # make sure the tag is not already created
+        if git tag --list | grep -q "$RC_VERSION"; then
+          echo "Error: Tag $RC_VERSION already exists."
+          exit 1
+        fi
