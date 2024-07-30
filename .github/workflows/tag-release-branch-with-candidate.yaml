@@ -5,10 +5,6 @@ on:
     branches:
       - 'release/*'
 
-env:
-  IS_NEW_BRANCH: false
-  BRANCH_NAME: ''
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,15 +15,10 @@ jobs:
       # with:
       #   fetch-depth: 0 # TODO: Uncomment if we experience issues with git history
 
-    - name: Configure Git
-      run: |
-        git config --global user.name "Github Actions"
-        git config --global user.email "${{ secrets.ACTION_EMAIL }}@users.noreply.github.com"
-
     - name: Check if new branch
       id: current_tag
       run: |
-        echo "::set-output name=is_new_branch::false"
+        echo "is_new_branch=false" >> $GITHUB_OUTPUT
         git fetch --tags
 
         # pull 1.0.0 from 1.0.0-rc1
@@ -42,17 +33,13 @@ jobs:
           NEW_TAG="$RELEASE_VERSION-rc1"
           git tag "$NEW_TAG"
           git push origin "$NEW_TAG"
-          echo "::set-output name=is_new_branch::true"
+          echo "is_new_branch=true" >> $GITHUB_OUTPUT
         fi
 
     - name: Create Tag
+      if: steps.current_tag.outputs.is_new_branch != 'true'
       run: |
         BRANCH_NAME="$(echo ${GITHUB_REF#refs/heads/} | sed 's/\//-/g')"
-        if [[ "${{ steps.current_tag.outputs.is_new_branch }}" == "true" ]]; then
-          echo "New branch created, no need to create a tag"
-          exit 0
-        fi
-
         RC_VERSION=$(echo "$BRANCH_NAME" | sed -n 's/release-\(.*\)/\1/p')
         if [[ ! -z "$RC_VERSION" ]]; then
           echo "Creating tag $RC_VERSION"
