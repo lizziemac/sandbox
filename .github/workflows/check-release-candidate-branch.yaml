@@ -1,4 +1,4 @@
-name: Validate release candidate branch
+name: "[shared] Validate release candidate branch"
 
 # This workflow checks that the release candidate branch is being merged into a release branch
 # with the same base version, and that the tag for the release candidate does not already exist

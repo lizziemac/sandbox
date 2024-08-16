@@ -5,8 +5,19 @@ on:
     types: [opened, edited, reopened]
     branches:
       - 'release/*' # the branch that the release candidate is being merged into
+  push:
+    branches:
+      - 'rc/*' # the branch that the release candidate is being merged from
 
 jobs:
   check-release-candidate-branch:
+    if: github.event_name == 'pull_request'
     name: Call 'check release candidate branch' workflow
     uses: ./.github/workflows/check-release-candidate-branch.yaml
+
+  create-release-candidate-pr:
+    if: github.event_name == 'push'
+    name: Call 'create release candidate pull request' workflow
+    uses: ./.github/workflows/create-release-candidate-pr.yaml
+    with:
+      release_candidate_branch: ${{ github.ref }}

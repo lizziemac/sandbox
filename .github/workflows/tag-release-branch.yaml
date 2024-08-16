@@ -1,4 +1,4 @@
-name: Tag release branch
+name: "[shared] Tag release branch"
 
 # This workflow tags a release branch with either rc1 if it is a new branch,
 # or rcX if a release candidate branch is being merged into this release branch

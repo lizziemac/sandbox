@@ -1,0 +1,44 @@
+name: "[shared] Create Release Candidate Pull Request"
+
+on:
+  workflow_call:
+    inputs:
+      release_candidate_branch:
+        required: true
+        type: string
+        description: 'The release candidate branch being merged'
+
+jobs:
+  build:
+    name: Create Release Candidate Pull Request
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Sanitize data
+      id: sanitized
+      run: |
+        RC_BRANCH="$(echo ${{ inputs.release_candidate_branch }} | sed 's|refs/heads/||')"
+        echo "release_candidate_branch=$RC_BRANCH" >> $GITHUB_OUTPUT
+
+    - name: Create Release Candidate Pull Request
+      id: create_pr
+      run: |
+        # pull 1.0.0-rc2 from rc/1.0.0-rc2
+        RC_VERSION="$(( echo ${{ inputs.release_candidate_branch }} || echo "") | sed 's|rc/||')"
+        # pull 1.0.0 from rc/1.0.0-rc2
+        BASE_VERSION="$(echo $RC_VERSION | sed -E 's/^(.*)-rc[0-9]+$/\1/')"
+        echo "Release candidate version: $RC_VERSION"
+        echo "Release candidate base version: $BASE_VERSION"
+
+        # Check if the PR already exists (even if closed)
+        if [[ -z $(gh pr list --base "release/${BASE_VERSION}" --head "${RC_BRANCH}" --state closed --state open) ]]; then
+          echo "No open pull requests found for ${RC_BRANCH} to release/${BASE_VERSION}"
+        else
+          # Create the PR
+          gh pr create --base "release/${BASE_VERSION}" --head "${RC_BRANCH}" --title "[${RC_VERSION}]" --body "This is a release candidate for ${RC_VERSION}. Please update if needed, review, and use the 'rebase and merge' strategy if approved."
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
