@@ -1,0 +1,36 @@
+name: Manual Approval example
+
+on:
+  push:
+    branches:
+      - 'test-manual-approval'
+
+jobs:
+  manual-approval:
+    runs-on: ubuntu-latest
+    outputs:
+      approval_status: ${{ steps.manual-approval.outputs.approval_status }}
+    steps:
+      - name: Get 'Harbor Systems Bot' access token for organization
+        uses: actions/create-github-app-token@v1
+        id: app-token
+        with:
+          app-id: ${{ vars.LIGHTNING_MACLEAN_APP_ID }}
+          private-key: ${{ secrets.LIGHTNING_MACLEAN_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }} # lizziemac
+      - name: Manual approval
+        id: manual-approval
+        uses: lizziemac/manual-approval@test-action
+        timeout-minutes: 1
+        with:
+          secret: ${{ steps.app-token.outputs.token }}
+          approvers: lizziemac
+          issue-title: "Ka-chow - ${{ github.run_id }}"
+          minimum-approvals: 1
+
+  validate:
+    needs: manual-approval
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check approval status
+        run: echo "${{ needs.manual-approval.outputs.approval_status }}"
