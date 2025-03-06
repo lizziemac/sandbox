@@ -38,7 +38,7 @@ jobs:
     steps:
       - name: Check outputs
         run: |
-          echo "Values are..."
+          echo "🤞🏻"
           echo "${{ needs.manual-approval.outputs.approval-status }}"
           echo "${{ needs.manual-approval.outputs.issue-number }}"
           echo "${{ needs.manual-approval.outputs.issue-url }}"
