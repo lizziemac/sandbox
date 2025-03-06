@@ -9,7 +9,11 @@ jobs:
   manual-approval:
     runs-on: ubuntu-latest
     outputs:
-      approval_status: ${{ steps.manual-approval.outputs.approval_status }}
+      approval-status: ${{ steps.manual-approval.outputs.approval-status }}
+      issue-url: ${{ steps.manual-approval.outputs.issue-url }}
+      issue-number: ${{ steps.manual-approval.outputs.issue-number }}
+
+
     steps:
       - name: Get 'Harbor Systems Bot' access token for organization
         uses: actions/create-github-app-token@v1
