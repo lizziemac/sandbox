@@ -20,7 +20,7 @@ jobs:
           owner: ${{ github.repository_owner }} # lizziemac
       - name: Manual approval
         id: manual-approval
-        uses: lizziemac/manual-approval@test-action
+        uses: lizziemac/manual-approval@test/feat-outputs
         timeout-minutes: 1
         with:
           secret: ${{ steps.app-token.outputs.token }}
@@ -32,5 +32,8 @@ jobs:
     needs: manual-approval
     runs-on: ubuntu-latest
     steps:
-      - name: Check approval status
-        run: echo "${{ needs.manual-approval.outputs.approval_status }}"
+      - name: Check outputs
+        run: |
+          echo "${{ needs.manual-approval.outputs.approval-status }}"
+          echo "${{ needs.manual-approval.outputs.issue-number }}"
+          echo "${{ needs.manual-approval.outputs.issue-url }}"
