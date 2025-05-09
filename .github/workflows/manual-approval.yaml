@@ -24,7 +24,7 @@ jobs:
           owner: ${{ github.repository_owner }} # lizziemac
       - name: Manual approval
         id: manual-approval
-        uses: trstringer/manual-approval
+        uses: trstringer/manual-approval@v1
         with:
           secret: ${{ steps.app-token.outputs.token }}
           timeout-minutes: 1
