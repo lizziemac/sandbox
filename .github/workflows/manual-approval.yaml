@@ -28,6 +28,7 @@ jobs:
         with:
           secret: ${{ steps.app-token.outputs.token }}
           timeout-minutes: 1
+          fake: false
           approvers: lizziemac
           issue-title: "Ka-chow - ${{ github.run_id }}"
           minimum-approvals: 1
