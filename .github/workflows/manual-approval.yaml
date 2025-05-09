@@ -25,9 +25,9 @@ jobs:
       - name: Manual approval
         id: manual-approval
         uses: lizziemac/manual-approval@test/feat-outputs
-        timeout-minutes: 1
         with:
           secret: ${{ steps.app-token.outputs.token }}
+          timeout-minutes: 1
           approvers: lizziemac
           issue-title: "Ka-chow - ${{ github.run_id }}"
           minimum-approvals: 1
